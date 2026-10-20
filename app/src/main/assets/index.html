@@ -400,6 +400,9 @@ svg { flex: none; }
     } catch (e) { return d.toDateString(); }
   }
   function sum(a) { var t = 0; for (var i = 0; i < a.length; i++) t += a[i]; return t; }
+  // Distance of n laps, rounded to 2 decimals so 3 × 23.5 shows 70.5, not 70.49999.
+  function mdist(n, track) { return Math.round(n * track * 100) / 100; }
+  function r2(x) { return Math.round(x * 100) / 100; }
   function plural(n, word) { return n + " " + word + (n === 1 ? "" : "s"); }
 
   // ---------- feedback: buzz, beep, voice ----------
@@ -556,28 +559,45 @@ svg { flex: none; }
   }
 
   // ---------- setup ----------
-  var KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "del"];
+  // Bottom row is ". 0 ⌫". Tap ⌫ to delete a digit, hold it to clear the field.
+  // The decimal point is for the track length only (e.g. 23.5 m); the goal is whole metres.
+  var KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "del"];
+  var holdTimer = null, held = false;
   (function buildKeypad() {
     var pad = $("keypad");
     KEYS.forEach(function (k) {
       var b = document.createElement("button");
       b.className = "key"; b.dataset.key = k;
       if (k === "del") {
-        b.setAttribute("aria-label", "Delete last digit");
+        b.setAttribute("aria-label", "Delete last digit, hold to clear");
         b.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 5H9l-6 7 6 7h12z"></path><path d="m12 9 6 6M18 9l-6 6"></path></svg>';
-      } else if (k === "C") {
-        b.setAttribute("aria-label", "Clear");
-        b.textContent = "C";
+        b.addEventListener("pointerdown", function () {
+          held = false; clearTimeout(holdTimer);
+          holdTimer = setTimeout(function () { held = true; draft[activeField] = ""; buzz(40); renderSetup(); }, 550);
+        });
+        ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) {
+          b.addEventListener(ev, function () { clearTimeout(holdTimer); });
+        });
+      } else if (k === ".") {
+        b.setAttribute("aria-label", "Decimal point");
+        b.textContent = ".";
       } else b.textContent = k;
       pad.appendChild(b);
     });
+    pad.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     pad.addEventListener("click", function (e) {
-      var b = e.target.closest(".key"); if (!b) return;
+      var b = e.target.closest(".key"); if (!b || b.disabled) return;
       var k = b.dataset.key, v = draft[activeField];
-      var max = activeField === "track" ? 4 : 5;
-      if (k === "C") v = "";
-      else if (k === "del") v = v.slice(0, -1);
-      else if (!(v === "" && k === "0") && v.length < max) v += k;
+      var maxWhole = activeField === "track" ? 4 : 5;
+      var dot = v.indexOf(".");
+      if (k === "del") {
+        if (held) { held = false; return; } // the hold already cleared the field
+        v = v.slice(0, -1);
+      } else if (k === ".") {
+        if (activeField === "track" && dot < 0) v = (v || "0") + ".";
+      } else if (dot >= 0) {
+        if (v.length - dot - 1 < 2) v += k; // up to 2 decimal places
+      } else if (!(v === "" && k === "0") && v.length < maxWhole) v += k;
       draft[activeField] = v;
       renderSetup();
     });
@@ -589,6 +609,8 @@ svg { flex: none; }
       el.classList.toggle("empty", !draft[f]);
       $("f-" + f).setAttribute("aria-pressed", String(activeField === f));
     });
+    var dotKey = document.querySelector('.key[data-key="."]');
+    if (dotKey) dotKey.disabled = activeField !== "track";
     var tr = +draft.track || 0, g = +draft.goal || 0;
     $("goal-hint").textContent = tr > 0 && g > 0 ? "= " + plural(Math.ceil(g / tr), "lap") : "optional";
     $("btn-go").disabled = !(tr > 0);
@@ -642,7 +664,7 @@ svg { flex: none; }
   function renderWalk() {
     var s = session; if (!s) return;
     var paused = s.status === "paused";
-    var e = elapsed(s), done = sum(s.splits), laps = s.splits.length, dist = laps * s.track;
+    var e = elapsed(s), done = sum(s.splits), laps = s.splits.length, dist = mdist(laps, s.track);
     var root = $("walk");
     root.dataset.state = paused ? "paused" : "running";
     $("w-state").textContent = paused ? "Paused" : "Walking";
@@ -655,9 +677,9 @@ svg { flex: none; }
       goalBox.hidden = false;
       $("w-fill").style.width = Math.min(100, (dist / s.goal) * 100) + "%";
       if (dist >= s.goal) {
-        $("w-togo").textContent = "Goal reached" + (dist > s.goal ? " · +" + (dist - s.goal) + " m" : "");
+        $("w-togo").textContent = "Goal reached" + (dist > s.goal ? " · +" + r2(dist - s.goal) + " m" : "");
       } else {
-        var rem = s.goal - dist;
+        var rem = r2(s.goal - dist);
         $("w-togo").textContent = rem + " m to go · " + plural(Math.ceil(rem / s.track), "lap");
       }
       $("w-goalv").textContent = "Goal " + s.goal + " m";
@@ -700,7 +722,7 @@ svg { flex: none; }
       return;
     }
     s.splits.push(Math.round(split));
-    var n = s.splits.length, dist = n * s.track;
+    var n = s.splits.length, dist = mdist(n, s.track);
     var goalJust = s.goal > 0 && !s.goalHit && dist >= s.goal;
     if (goalJust) s.goalHit = true;
     saveSession();
@@ -713,7 +735,7 @@ svg { flex: none; }
     var s = session; if (!s || !s.splits.length) return;
     var n = s.splits.length;
     s.splits.pop();
-    if (s.goalHit && s.splits.length * s.track < s.goal) s.goalHit = false;
+    if (s.goalHit && mdist(s.splits.length, s.track) < s.goal) s.goalHit = false;
     saveSession();
     buzz(60); beep([[440, 0, 0.14]]);
     say("Lap " + n + " removed.");
@@ -737,7 +759,7 @@ svg { flex: none; }
   }
   function walkLine(s) {
     var laps = s.splits.length;
-    return plural(laps, "lap") + " · " + (laps * s.track) + " m";
+    return plural(laps, "lap") + " · " + (mdist(laps, s.track)) + " m";
   }
   function finishWalk() {
     var s = session; if (!s) return;
@@ -754,7 +776,7 @@ svg { flex: none; }
     history = history.filter(function (r) { return r.id !== rec.id; }).concat([rec]);
     saveHistory(); syncUp(rec);
     buzz([150, 80, 150]); beep([[1046, 0, 0.12], [784, 0.16, 0.2]]);
-    say("Walk saved. " + plural(rec.splits.length, "lap") + ". " + (rec.splits.length * rec.track) + " metres.");
+    say("Walk saved. " + plural(rec.splits.length, "lap") + ". " + (mdist(rec.splits.length, rec.track)) + " metres.");
     openSummary(rec, "finish");
   }
   function discardWalk() {
@@ -792,7 +814,7 @@ svg { flex: none; }
   // ---------- summary ----------
   function openSummary(rec, from) {
     summaryCtx = { rec: rec, from: from };
-    var n = rec.splits.length, dist = n * rec.track, t = sum(rec.splits);
+    var n = rec.splits.length, dist = mdist(n, rec.track), t = sum(rec.splits);
     $("s-title").textContent = from === "finish" ? "Walk done" : "Walk";
     $("s-date").textContent = fmtDate(rec.startedAt) + " · " + rec.track + " m track";
     var reached = rec.goal > 0 && dist >= rec.goal;
@@ -810,7 +832,7 @@ svg { flex: none; }
       run += sp;
       var tr = document.createElement("tr");
       if (sp === best && n > 1) tr.className = "best";
-      [String(i + 1), String((i + 1) * rec.track), fmt(sp), fmt(run)].forEach(function (v) {
+      [String(i + 1), String(mdist((i + 1), rec.track)), fmt(sp), fmt(run)].forEach(function (v) {
         var td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
       });
       tb.appendChild(tr);
@@ -834,7 +856,7 @@ svg { flex: none; }
     var rec = summaryCtx.rec;
     openSheet({
       title: "Delete this walk?",
-      text: fmtDate(rec.startedAt) + " · " + plural(rec.splits.length, "lap") + " · " + (rec.splits.length * rec.track) + " m will be removed from history.",
+      text: fmtDate(rec.startedAt) + " · " + plural(rec.splits.length, "lap") + " · " + (mdist(rec.splits.length, rec.track)) + " m will be removed from history.",
       cancel: "Cancel · keep it", ok: "Yes, delete", okClass: "btn-stop",
       onOk: function () { deleteWalk(rec); show("history"); toast("Walk deleted"); }
     });
@@ -857,8 +879,8 @@ svg { flex: none; }
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><path d="m9 5 7 7-7 7"></path></svg>';
       b.querySelector(".count .num").textContent = n;
       b.querySelector(".d").textContent = fmtDate(rec.startedAt);
-      b.querySelector(".m").textContent = (n * rec.track) + " m";
-      b.querySelector(".t").textContent = fmt(sum(rec.splits)) + " · " + rec.track + " m track" + (rec.goal > 0 && n * rec.track >= rec.goal ? " · goal reached" : "");
+      b.querySelector(".m").textContent = (mdist(n, rec.track)) + " m";
+      b.querySelector(".t").textContent = fmt(sum(rec.splits)) + " · " + rec.track + " m track" + (rec.goal > 0 && mdist(n, rec.track) >= rec.goal ? " · goal reached" : "");
       b.addEventListener("click", function () { openSummary(rec, "history"); });
       li.appendChild(b); list.appendChild(li);
     });
