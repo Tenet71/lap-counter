@@ -75,7 +75,13 @@ button:disabled { opacity: 0.38; cursor: not-allowed; }
 svg { flex: none; }
 
 /* Home */
-.home { justify-content: space-between; text-align: center; }
+.home { justify-content: space-between; text-align: center; position: relative; }
+.close-btn {
+  position: absolute; top: 12px; right: max(8px, env(safe-area-inset-right, 0px));
+  width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; opacity: 0.8;
+}
+.close-btn:active { background: var(--surface); }
 .home-head { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; }
 .start-dial {
   width: min(78vw, 300px); max-width: 100%; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; border: none;
@@ -200,6 +206,9 @@ svg { flex: none; }
 <div id="app">
   <!-- Home -->
   <section id="home" class="screen home" aria-labelledby="home-title">
+    <button id="btn-close" class="close-btn" aria-label="Close app" hidden>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+    </button>
     <div class="home-head">
       <h1 id="home-title" class="eyebrow">Lap counter</h1>
       <p id="home-last" class="muted"></p>
@@ -540,6 +549,11 @@ svg { flex: none; }
   }
   $("btn-start").addEventListener("click", function () { ensureAudio(); activeField = "track"; show("setup"); });
   $("btn-history").addEventListener("click", function () { show("history"); });
+  // Close only exists in the Android app; a browser tab can't close itself.
+  if (NATIVE && typeof NATIVE.exitApp === "function") {
+    $("btn-close").hidden = false;
+    $("btn-close").addEventListener("click", function () { try { NATIVE.exitApp(); } catch (e) {} });
+  }
 
   // ---------- setup ----------
   var KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "del"];

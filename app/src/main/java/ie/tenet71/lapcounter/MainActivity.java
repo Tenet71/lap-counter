@@ -177,5 +177,11 @@ public class MainActivity extends Activity {
                 else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             });
         }
+
+        /** Closes the app and removes it from the recent apps list. */
+        @JavascriptInterface
+        public void exitApp() {
+            runOnUiThread(MainActivity.this::finishAndRemoveTask);
+        }
     }
 }
