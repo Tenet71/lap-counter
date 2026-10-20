@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+def buildNumber = Integer.parseInt(System.getenv("GITHUB_RUN_NUMBER") ?: "1")
+
+android {
+    namespace 'ie.tenet71.lapcounter'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ie.tenet71.lapcounter'
+        minSdk 26
+        targetSdk 34
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    // A fixed key, so each new APK installs over the old one and keeps your walk history.
+    signingConfigs {
+        release {
+            storeFile file('lapcounter.keystore')
+            storePassword 'lapcounter-store'
+            keyAlias 'lapcounter'
+            keyPassword 'lapcounter-store'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
