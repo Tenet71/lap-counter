@@ -3,7 +3,7 @@
 A big-button lap counter for walking laps of a short track, for Android.
 
 - Enter the track length and an optional goal, both in metres.
-- Tap **LAP** each time you pass the start. Taps within 30 seconds of the last lap are ignored.
+- Tap **LAP** each time you pass the start. Taps within 5 seconds of the last lap are ignored.
 - Each lap buzzes, beeps and (if Voice is on) says the lap number and distance.
 - When the goal is reached it buzzes longer and keeps counting.
 - Pause, resume, stop (save) or reset (discard, with a confirmation).

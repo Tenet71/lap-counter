@@ -360,7 +360,7 @@ svg { flex: none; }
 <script>
 (function () {
   "use strict";
-  var MIN_LAP_MS = 30000;
+  var MIN_LAP_MS = 5000;
   var $ = function (id) { return document.getElementById(id); };
 
   // ---------- storage (this phone) ----------
@@ -718,7 +718,7 @@ svg { flex: none; }
     var s = session; if (!s || s.status !== "running") return;
     var e = elapsed(s), split = e - sum(s.splits);
     if (split < MIN_LAP_MS) {
-      toast("Ignored: less than 30 seconds since the last lap");
+      toast("Ignored: less than 5 seconds since the last lap");
       return;
     }
     s.splits.push(Math.round(split));
