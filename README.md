@@ -30,3 +30,4 @@ Every push to `main` builds a signed APK with GitHub Actions and publishes it as
 - **1.0.3:** decimal point on the keypad for track lengths like 23.5 m; hold ⌫ to clear.
 - **1.0.4:** repeat taps ignored for 5 s instead of 30 s.
 - **1.0.5:** laps and distance no longer overlap (sized for 999 laps and 9,999 m); average speed so far shown on the walk screen.
+- **1.0.6:** buzz now works even when the phone is on silent or vibrate (sent as an alarm vibration); the voice engine retries if it failed to start.

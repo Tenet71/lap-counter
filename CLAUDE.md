@@ -19,7 +19,7 @@ from GitHub Releases. Explain results in plain language, not code.
 
 ## Native bridge (`window.LapNative`)
 
-- `vibrate(patternJson)`, `speak(text)` (UK English TTS), `keepScreenOn(bool)`, `exitApp()` (`finishAndRemoveTask`).
+- `vibrate(patternJson)` (tagged USAGE_ALARM so Samsung media-vibration settings and silent/vibrate modes don't mute it), `speak(text)` (UK English TTS, re-inits the engine if it failed to start), `keepScreenOn(bool)`, `exitApp()` (`finishAndRemoveTask`).
 - Back button: `MainActivity.onBackPressed` calls `window.lcBack()`. Return true to swallow it (e.g. during a walk).
 - The page must still work with `NATIVE == null` (plain browser preview). Native-only UI like the ✕ stays hidden there.
 
@@ -37,6 +37,7 @@ History lives only on the phone. Keep these keys and their shapes backward compa
   Keypad bottom row is `. 0 ⌫`. Hold ⌫ to clear.
 - Lap distances are rounded to 2 dp (`mdist`, `r2`) so 3 × 23.5 shows 70.5.
 - `MIN_LAP_MS = 5000`: taps within 5 s of the last lap are ignored (was 30 s, too long for a short track).
+- Voice defaults to off (`settings.voice: false`); the owner switches it on in setup.
 - Feedback: buzz minimum, plus beep and optional voice ("Lap 4. 100 metres."). Goal reached: long buzz + 3-note beep, keeps counting.
 - Reset needs confirmation. Stop asks "Finish this walk?" then saves. Zero-lap walks aren't saved.
 - ✕ close button on the **Home screen only**, no confirmation. Walking screens use Pause/Stop.
