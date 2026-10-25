@@ -184,6 +184,8 @@ svg { flex: none; }
 .walk-card .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .walk-card .body .num { font-size: 30px; }
 .walk-card .sub { font-size: 15px; color: var(--muted); }
+.walk-card .m { display: flex; flex-direction: column; align-items: flex-start; }
+.walk-card .spd { font-size: 22px; line-height: 1.1; color: var(--go); white-space: nowrap; }
 .empty { padding: 32px 8px; text-align: center; color: var(--muted); font-size: 17px; text-wrap: balance; }
 
 /* Sheet + toast */
@@ -931,7 +933,11 @@ svg { flex: none; }
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><path d="m9 5 7 7-7 7"></path></svg>';
       b.querySelector(".count .num").textContent = n;
       b.querySelector(".d").textContent = fmtDate(rec.startedAt);
-      b.querySelector(".m").textContent = (mdist(n, rec.track)) + " m";
+      var hd = mdist(n, rec.track), ht = sum(rec.splits);
+      var dEl = document.createElement("span"); dEl.textContent = hd + " m";
+      var sEl = document.createElement("span"); sEl.className = "spd";
+      sEl.textContent = ht > 0 ? (hd / (ht / 1000) * 3.6).toFixed(1) + " km/h" : "";
+      b.querySelector(".m").appendChild(dEl); b.querySelector(".m").appendChild(sEl);
       b.querySelector(".t").textContent = fmt(sum(rec.splits)) + " · " + rec.track + " m track" + (rec.goal > 0 && mdist(n, rec.track) >= rec.goal ? " · goal reached" : "");
       b.addEventListener("click", function () { openSummary(rec, "history"); });
       li.appendChild(b); list.appendChild(li);
