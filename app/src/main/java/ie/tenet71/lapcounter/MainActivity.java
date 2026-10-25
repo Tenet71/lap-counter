@@ -3,8 +3,10 @@ package ie.tenet71.lapcounter;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationAttributes;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
@@ -31,22 +33,15 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private TextToSpeech tts;
-    private boolean ttsReady = false;
+    private volatile boolean ttsReady = false;
+    private volatile boolean ttsStarting = false;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        tts = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) {
-                int r = tts.setLanguage(Locale.UK);
-                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    tts.setLanguage(Locale.getDefault());
-                }
-                ttsReady = true;
-            }
-        });
+        initTts();
 
         webView = new WebView(this);
         webView.setBackgroundColor(0xFF0E0F11);
@@ -131,6 +126,42 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
+    /** Starts the text-to-speech engine. Called again later if the first start failed. */
+    private void initTts() {
+        if (tts != null) {
+            try { tts.shutdown(); } catch (Exception ignored) { }
+        }
+        ttsReady = false;
+        ttsStarting = true;
+        tts = new TextToSpeech(this, status -> {
+            ttsStarting = false;
+            if (status == TextToSpeech.SUCCESS) {
+                int r = tts.setLanguage(Locale.UK);
+                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    tts.setLanguage(Locale.getDefault());
+                }
+                ttsReady = true;
+            }
+        });
+    }
+
+    /**
+     * Plays a vibration tagged as an alarm. Untagged app vibrations are treated as "media"
+     * vibrations on newer Android/Samsung phones, which are often switched off or muted in
+     * silent/vibrate modes; alarm vibrations are not.
+     */
+    @SuppressWarnings("deprecation")
+    private void playVibration(Vibrator v, VibrationEffect effect) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            v.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM));
+        } else {
+            v.vibrate(effect, new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build());
+        }
+    }
+
     @SuppressWarnings("deprecation")
     private Vibrator vibrator() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -152,12 +183,12 @@ public class MainActivity extends Activity {
                 Vibrator v = vibrator();
                 if (v == null || !v.hasVibrator()) return;
                 if (a.length() == 1) {
-                    v.vibrate(VibrationEffect.createOneShot(Math.max(1, a.getLong(0)), VibrationEffect.DEFAULT_AMPLITUDE));
+                    playVibration(v, VibrationEffect.createOneShot(Math.max(1, a.getLong(0)), VibrationEffect.DEFAULT_AMPLITUDE));
                 } else {
                     long[] timings = new long[a.length() + 1];
                     timings[0] = 0;
                     for (int i = 0; i < a.length(); i++) timings[i + 1] = a.getLong(i);
-                    v.vibrate(VibrationEffect.createWaveform(timings, -1));
+                    playVibration(v, VibrationEffect.createWaveform(timings, -1));
                 }
             } catch (Exception ignored) {
             }
@@ -165,8 +196,12 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void speak(String text) {
-            if (tts != null && ttsReady && text != null) {
+            if (text == null) return;
+            if (tts != null && ttsReady) {
                 tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "lap");
+            } else if (!ttsStarting) {
+                // The voice engine wasn't ready (e.g. it failed to start with the app): try again.
+                runOnUiThread(MainActivity.this::initTts);
             }
         }
 
