@@ -37,6 +37,7 @@ History lives only on the phone. Keep these keys and their shapes backward compa
   Keypad bottom row is `. 0 ⌫`. Hold ⌫ to clear.
 - Lap distances are rounded to 2 dp (`mdist`, `r2`) so 3 × 23.5 shows 70.5.
 - `MIN_LAP_MS = 5000`: taps within 5 s of the last lap are ignored (was 30 s, too long for a short track).
+- History cards show distance with average speed (km/h, green) on the line below.
 - Voice defaults to off (`settings.voice: false`); the owner switches it on in setup.
 - Feedback: buzz minimum, plus beep and optional voice ("Lap 4. 100 metres."). Goal reached: long buzz + 3-note beep, keeps counting.
 - Reset needs confirmation. Stop asks "Finish this walk?" then saves. Zero-lap walks aren't saved.

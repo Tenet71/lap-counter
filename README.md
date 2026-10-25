@@ -9,7 +9,7 @@ A big-button lap counter for walking laps of a short track, for Android.
 - The walk screen shows your average speed so far in km/h, updated after each lap.
 - The laps and distance numbers are sized to fit up to 999 laps and 9,999 m side by side.
 - Pause, resume, stop (save) or reset (discard, with a confirmation).
-- Finished walks are kept in History on the phone.
+- Finished walks are kept in History on the phone, each showing distance and average speed.
 - The screen stays on during a walk.
 
 ## Install
@@ -31,3 +31,4 @@ Every push to `main` builds a signed APK with GitHub Actions and publishes it as
 - **1.0.4:** repeat taps ignored for 5 s instead of 30 s.
 - **1.0.5:** laps and distance no longer overlap (sized for 999 laps and 9,999 m); average speed so far shown on the walk screen.
 - **1.0.6:** buzz now works even when the phone is on silent or vibrate (sent as an alarm vibration); the voice engine retries if it failed to start.
+- **1.0.7:** each History card shows the walk's average speed in km/h.
