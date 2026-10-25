@@ -31,6 +31,8 @@ History lives only on the phone. Keep these keys and their shapes backward compa
 ## Behaviour the owner has decided (don't change without asking)
 
 - Distance and laps are more prominent than time.
+- The tally (laps + distance) is sized by `fitTally()` so 999 laps and 9999 m (plus the track's decimals) fit side by side with a 24 px gap. Sized once per screen/track so numbers don't jump.
+- Walk screen shows "Avg speed" (km/h, completed laps' distance / their time), updated per lap; "–" before the first lap.
 - Track length allows decimals (up to 4 digits + 2 dp, e.g. 23.5). Goal is whole metres (up to 5 digits).
   Keypad bottom row is `. 0 ⌫`. Hold ⌫ to clear.
 - Lap distances are rounded to 2 dp (`mdist`, `r2`) so 3 × 23.5 shows 70.5.
